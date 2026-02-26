@@ -1,0 +1,8 @@
+.claude
+task.md
+CLAUDE.md
+client/node_modules
+client/package-lock.json
+*.exe
+./llm-captcha
+.idea

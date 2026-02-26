@@ -1,0 +1,524 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "LLM Captcha API",
+    "description": "Captcha solving service supporting RecaptchaV2, RecaptchaV3, and GeeTest v3/v4",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Local dev server"
+    }
+  ],
+  "paths": {
+    "/api/task": {
+      "post": {
+        "summary": "Create a captcha task",
+        "description": "Create a new captcha solving task. The request body varies by task type.",
+        "tags": ["Task"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  { "$ref": "#/components/schemas/RecaptchaV2TaskRequest" },
+                  { "$ref": "#/components/schemas/RecaptchaV3TaskRequest" },
+                  { "$ref": "#/components/schemas/GeeTestV3TaskRequest" },
+                  { "$ref": "#/components/schemas/GeeTestV4TaskRequest" }
+                ],
+                "discriminator": {
+                  "propertyName": "type",
+                  "mapping": {
+                    "RecaptchaV2Task": "#/components/schemas/RecaptchaV2TaskRequest",
+                    "RecaptchaV3Task": "#/components/schemas/RecaptchaV3TaskRequest",
+                    "GeeTestTask": "#/components/schemas/GeeTestV3TaskRequest"
+                  }
+                }
+              },
+              "examples": {
+                "RecaptchaV2": {
+                  "summary": "RecaptchaV2Task",
+                  "value": {
+                    "type": "RecaptchaV2Task",
+                    "websiteURL": "https://example.com/login",
+                    "websiteKey": "6Le-wvkSAAAAAPBMRTvw0Q4Muexq9bi0DJwx_mJ-",
+                    "isInvisible": false
+                  }
+                },
+                "RecaptchaV2 Full": {
+                  "summary": "RecaptchaV2Task (all params)",
+                  "value": {
+                    "type": "RecaptchaV2Task",
+                    "websiteURL": "https://example.com/login",
+                    "websiteKey": "6Le-wvkSAAAAAPBMRTvw0Q4Muexq9bi0DJwx_mJ-",
+                    "recaptchaDataSValue": "some-data-s-value",
+                    "isInvisible": true,
+                    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "cookies": "session=abc123; token=xyz789",
+                    "apiDomain": "recaptcha.net"
+                  }
+                },
+                "RecaptchaV3": {
+                  "summary": "RecaptchaV3Task",
+                  "value": {
+                    "type": "RecaptchaV3Task",
+                    "websiteURL": "https://example.com/submit",
+                    "websiteKey": "6LdKlZEpAAAAAAOQjzC2v_d36tWxCl6dWsozdSy9",
+                    "minScore": 0.9,
+                    "pageAction": "submit"
+                  }
+                },
+                "RecaptchaV3 Enterprise": {
+                  "summary": "RecaptchaV3Task (Enterprise)",
+                  "value": {
+                    "type": "RecaptchaV3Task",
+                    "websiteURL": "https://example.com/submit",
+                    "websiteKey": "6LdKlZEpAAAAAAOQjzC2v_d36tWxCl6dWsozdSy9",
+                    "minScore": 0.7,
+                    "pageAction": "login",
+                    "isEnterprise": true,
+                    "apiDomain": "recaptcha.net"
+                  }
+                },
+                "GeeTest V3": {
+                  "summary": "GeeTestTask (v3)",
+                  "value": {
+                    "type": "GeeTestTask",
+                    "websiteURL": "https://example.com/verify",
+                    "gt": "022f3a8540c862c2579e54fcd2838196",
+                    "challenge": "28f8e40bafc04be29e0b9b3b1f2e4e3d",
+                    "version": 3
+                  }
+                },
+                "GeeTest V3 Full": {
+                  "summary": "GeeTestTask (v3 all params)",
+                  "value": {
+                    "type": "GeeTestTask",
+                    "websiteURL": "https://example.com/verify",
+                    "gt": "022f3a8540c862c2579e54fcd2838196",
+                    "challenge": "28f8e40bafc04be29e0b9b3b1f2e4e3d",
+                    "geetestApiServerSubdomain": "api-na.geetest.com",
+                    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                    "version": 3
+                  }
+                },
+                "GeeTest V4": {
+                  "summary": "GeeTestTask (v4)",
+                  "value": {
+                    "type": "GeeTestTask",
+                    "websiteURL": "https://example.com/verify",
+                    "gt": "captcha-id-here",
+                    "challenge": "",
+                    "version": 4,
+                    "initParameters": {
+                      "captcha_id": "captcha-id-here",
+                      "product": "bind"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CreateTaskResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/task/{taskId}": {
+      "get": {
+        "summary": "Get task result",
+        "description": "Poll for task status and solution. Keep polling until status is `completed` or `failed`.",
+        "tags": ["Task"],
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "The task ID returned from create task"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    { "$ref": "#/components/schemas/TaskResultRecaptchaV2" },
+                    { "$ref": "#/components/schemas/TaskResultRecaptchaV3" },
+                    { "$ref": "#/components/schemas/TaskResultGeeTestV3" },
+                    { "$ref": "#/components/schemas/TaskResultGeeTestV4" },
+                    { "$ref": "#/components/schemas/TaskResultPending" }
+                  ]
+                },
+                "examples": {
+                  "Pending": {
+                    "summary": "Task still processing",
+                    "value": {
+                      "taskId": "550e8400-e29b-41d4-a716-446655440000",
+                      "status": "pending"
+                    }
+                  },
+                  "Assigned": {
+                    "summary": "Task assigned to solver",
+                    "value": {
+                      "taskId": "550e8400-e29b-41d4-a716-446655440000",
+                      "status": "assigned"
+                    }
+                  },
+                  "RecaptchaV2 Completed": {
+                    "summary": "RecaptchaV2 solved",
+                    "value": {
+                      "taskId": "550e8400-e29b-41d4-a716-446655440000",
+                      "status": "completed",
+                      "solution": {
+                        "gRecaptchaResponse": "03AGdBq24PBCbwiDRaS_MJ7Z..."
+                      }
+                    }
+                  },
+                  "RecaptchaV3 Completed": {
+                    "summary": "RecaptchaV3 solved",
+                    "value": {
+                      "taskId": "550e8400-e29b-41d4-a716-446655440000",
+                      "status": "completed",
+                      "solution": {
+                        "gRecaptchaResponse": "03AGdBq24PBCbwiDRaS_MJ7Z..."
+                      }
+                    }
+                  },
+                  "GeeTestV3 Completed": {
+                    "summary": "GeeTest v3 solved",
+                    "value": {
+                      "taskId": "550e8400-e29b-41d4-a716-446655440000",
+                      "status": "completed",
+                      "solution": {
+                        "challenge": "28f8e40bafc04be29e0b9b3b1f2e4e3d",
+                        "validate": "a]b_c.d" ,
+                        "seccode": "a]b_c.d|jordan"
+                      }
+                    }
+                  },
+                  "GeeTestV4 Completed": {
+                    "summary": "GeeTest v4 solved",
+                    "value": {
+                      "taskId": "550e8400-e29b-41d4-a716-446655440000",
+                      "status": "completed",
+                      "solution": {
+                        "captcha_id": "captcha-id-here",
+                        "captcha_output": "some-output",
+                        "gen_time": "1234567890",
+                        "lot_number": "lot123",
+                        "pass_token": "token-value"
+                      }
+                    }
+                  },
+                  "Failed": {
+                    "summary": "Task failed",
+                    "value": {
+                      "taskId": "550e8400-e29b-41d4-a716-446655440000",
+                      "status": "failed",
+                      "error": "timeout"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Task not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RecaptchaV2TaskRequest": {
+        "type": "object",
+        "required": ["type", "websiteURL", "websiteKey"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["RecaptchaV2Task"],
+            "description": "Task type"
+          },
+          "websiteURL": {
+            "type": "string",
+            "description": "The full URL of target web page where the captcha is loaded"
+          },
+          "websiteKey": {
+            "type": "string",
+            "description": "reCAPTCHA sitekey. Found in data-sitekey property or k parameter of reCAPTCHA API requests"
+          },
+          "recaptchaDataSValue": {
+            "type": "string",
+            "description": "Value of data-s parameter. May be required for Google services"
+          },
+          "isInvisible": {
+            "type": "boolean",
+            "default": false,
+            "description": "True for invisible reCAPTCHA (no checkbox, challenge appears directly). Mostly used with callback"
+          },
+          "userAgent": {
+            "type": "string",
+            "description": "Browser User-Agent used to load the captcha. Use modern browser UA only"
+          },
+          "cookies": {
+            "type": "string",
+            "description": "Cookies set in solver browser. Format: key1=val1; key2=val2. Suitable for Google services"
+          },
+          "apiDomain": {
+            "type": "string",
+            "description": "Domain to load captcha: google.com or recaptcha.net",
+            "default": "google.com"
+          }
+        }
+      },
+      "RecaptchaV3TaskRequest": {
+        "type": "object",
+        "required": ["type", "websiteURL", "websiteKey", "minScore"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["RecaptchaV3Task"],
+            "description": "Task type"
+          },
+          "websiteURL": {
+            "type": "string",
+            "description": "The full URL of target web page where the captcha is loaded"
+          },
+          "websiteKey": {
+            "type": "string",
+            "description": "reCAPTCHA sitekey. Found in data-sitekey property or k parameter of reCAPTCHA API requests"
+          },
+          "minScore": {
+            "type": "number",
+            "enum": [0.3, 0.7, 0.9],
+            "description": "Required score value"
+          },
+          "pageAction": {
+            "type": "string",
+            "description": "Action parameter from data-action property or grecaptcha.execute options"
+          },
+          "isEnterprise": {
+            "type": "boolean",
+            "default": false,
+            "description": "True for Enterprise reCAPTCHA (enterprise.js / grecaptcha.enterprise.execute)"
+          },
+          "apiDomain": {
+            "type": "string",
+            "description": "Domain to load captcha: google.com or recaptcha.net",
+            "default": "google.com"
+          }
+        }
+      },
+      "GeeTestV3TaskRequest": {
+        "type": "object",
+        "required": ["type", "websiteURL", "gt", "challenge"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["GeeTestTask"],
+            "description": "Task type"
+          },
+          "websiteURL": {
+            "type": "string",
+            "description": "The full URL of target web page where the captcha is loaded"
+          },
+          "gt": {
+            "type": "string",
+            "description": "GeeTest gt value"
+          },
+          "challenge": {
+            "type": "string",
+            "description": "GeeTest challenge value"
+          },
+          "geetestApiServerSubdomain": {
+            "type": "string",
+            "description": "Custom GeeTest API domain, e.g. api-na.geetest.com. Default: api.geetest.com"
+          },
+          "userAgent": {
+            "type": "string",
+            "description": "Browser User-Agent used to load the captcha"
+          },
+          "version": {
+            "type": "integer",
+            "enum": [3],
+            "default": 3,
+            "description": "GeeTest version. Use 3 for this schema"
+          }
+        }
+      },
+      "GeeTestV4TaskRequest": {
+        "type": "object",
+        "required": ["type", "websiteURL", "gt", "version", "initParameters"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["GeeTestTask"],
+            "description": "Task type"
+          },
+          "websiteURL": {
+            "type": "string",
+            "description": "The full URL of target web page where the captcha is loaded"
+          },
+          "gt": {
+            "type": "string",
+            "description": "GeeTest gt value (captcha_id for v4)"
+          },
+          "challenge": {
+            "type": "string",
+            "description": "Not required for v4, can be empty"
+          },
+          "userAgent": {
+            "type": "string",
+            "description": "Browser User-Agent used to load the captcha"
+          },
+          "version": {
+            "type": "integer",
+            "enum": [4],
+            "description": "Must be 4 for GeeTest v4"
+          },
+          "initParameters": {
+            "type": "object",
+            "description": "Parameters passed to initGeetest4. Must contain captcha_id",
+            "properties": {
+              "captcha_id": {
+                "type": "string",
+                "description": "Captcha ID for GeeTest v4"
+              }
+            },
+            "required": ["captcha_id"]
+          }
+        }
+      },
+      "CreateTaskResponse": {
+        "type": "object",
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "description": "Unique task identifier (UUID)"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "assigned"],
+            "description": "Initial task status"
+          }
+        }
+      },
+      "TaskResultPending": {
+        "type": "object",
+        "properties": {
+          "taskId": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "assigned"]
+          }
+        }
+      },
+      "TaskResultRecaptchaV2": {
+        "type": "object",
+        "properties": {
+          "taskId": { "type": "string" },
+          "status": { "type": "string", "enum": ["completed"] },
+          "solution": {
+            "type": "object",
+            "properties": {
+              "gRecaptchaResponse": {
+                "type": "string",
+                "description": "The g-recaptcha-response token"
+              }
+            }
+          }
+        }
+      },
+      "TaskResultRecaptchaV3": {
+        "type": "object",
+        "properties": {
+          "taskId": { "type": "string" },
+          "status": { "type": "string", "enum": ["completed"] },
+          "solution": {
+            "type": "object",
+            "properties": {
+              "gRecaptchaResponse": {
+                "type": "string",
+                "description": "The g-recaptcha-response token"
+              }
+            }
+          }
+        }
+      },
+      "TaskResultGeeTestV3": {
+        "type": "object",
+        "properties": {
+          "taskId": { "type": "string" },
+          "status": { "type": "string", "enum": ["completed"] },
+          "solution": {
+            "type": "object",
+            "properties": {
+              "challenge": { "type": "string", "description": "GeeTest challenge response" },
+              "validate": { "type": "string", "description": "GeeTest validate token" },
+              "seccode": { "type": "string", "description": "GeeTest seccode token" }
+            }
+          }
+        }
+      },
+      "TaskResultGeeTestV4": {
+        "type": "object",
+        "properties": {
+          "taskId": { "type": "string" },
+          "status": { "type": "string", "enum": ["completed"] },
+          "solution": {
+            "type": "object",
+            "properties": {
+              "captcha_id": { "type": "string" },
+              "captcha_output": { "type": "string" },
+              "gen_time": { "type": "string" },
+              "lot_number": { "type": "string" },
+              "pass_token": { "type": "string" }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Task",
+      "description": "Captcha task management"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "llm-captcha-client",
+  "version": "1.0.0",
+  "description": "Electron client for LLM captcha solving system",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0"
+  }
+}

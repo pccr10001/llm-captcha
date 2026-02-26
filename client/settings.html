@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Captcha Client</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#1e1e2e; color:#cdd6f4; padding:20px; user-select:none; }
+    h1 { font-size:20px; margin-bottom:20px; color:#cba6f7; }
+    .section { background:#313244; border-radius:8px; padding:16px; margin-bottom:16px; }
+    .section h2 { font-size:14px; text-transform:uppercase; letter-spacing:0.5px; color:#a6adc8; margin-bottom:12px; }
+    .form-row { display:flex; gap:8px; align-items:center; }
+    input[type="text"] { flex:1; padding:8px 12px; border:1px solid #45475a; border-radius:6px; background:#1e1e2e; color:#cdd6f4; font-size:14px; outline:none; }
+    input[type="text"]:focus { border-color:#cba6f7; }
+    button { padding:8px 16px; border:none; border-radius:6px; font-size:14px; cursor:pointer; font-weight:500; transition:background 0.15s; }
+    #connectBtn { background:#a6e3a1; color:#1e1e2e; }
+    #connectBtn:hover { background:#94e2d5; }
+    #connectBtn.disconnect { background:#f38ba8; }
+    #connectBtn.disconnect:hover { background:#eba0ac; }
+    .status-indicator { display:flex; align-items:center; gap:8px; margin-top:12px; font-size:13px; }
+    .status-dot { width:10px; height:10px; border-radius:50%; background:#f38ba8; transition:background 0.3s; }
+    .status-dot.connected { background:#a6e3a1; }
+    .status-dot.connecting { background:#f9e2af; animation:pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .task-list { max-height:240px; overflow-y:auto; }
+    .task-item { border-radius:6px; background:#1e1e2e; margin-bottom:6px; font-size:13px; overflow:hidden; }
+    .task-header { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; cursor:pointer; }
+    .task-header:hover { background:#2a2a3c; }
+    .task-left { display:flex; align-items:center; gap:6px; min-width:0; }
+    .task-arrow { font-size:10px; color:#585b70; transition:transform 0.2s; flex-shrink:0; }
+    .task-item.expanded .task-arrow { transform:rotate(90deg); }
+    .task-id { font-family:'Consolas','Courier New',monospace; color:#89b4fa; }
+    .task-type { color:#cba6f7; font-size:12px; font-weight:500; }
+    .task-status { font-size:12px; font-weight:600; padding:2px 8px; border-radius:4px; }
+    .task-status.solving { background:#f9e2af; color:#1e1e2e; }
+    .task-status.solved { background:#a6e3a1; color:#1e1e2e; }
+    .task-status.cancelled { background:#f38ba8; color:#1e1e2e; }
+    .task-details { display:none; padding:0 10px 8px 26px; font-size:12px; color:#a6adc8; }
+    .task-item.expanded .task-details { display:block; }
+    .task-detail-row { display:flex; gap:6px; margin-bottom:2px; }
+    .task-detail-label { color:#585b70; min-width:60px; }
+    .task-detail-value { color:#cdd6f4; word-break:break-all; }
+    .empty-state { text-align:center; color:#585b70; padding:20px; font-size:13px; }
+  </style>
+</head>
+<body>
+  <h1>LLM Captcha Client</h1>
+  <div class="section">
+    <h2>Server Connection</h2>
+    <div class="form-row">
+      <input type="text" id="serverUrl" placeholder="ws://localhost:8080/ws" value="ws://localhost:8080/ws">
+      <button id="connectBtn">Connect</button>
+    </div>
+    <div class="status-indicator">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Disconnected</span>
+    </div>
+  </div>
+  <div class="section">
+    <h2>Tasks</h2>
+    <div class="task-list" id="taskList">
+      <div class="empty-state">No tasks yet. Connect to the server to receive captcha tasks.</div>
+    </div>
+  </div>
+  <script src="settings.js"></script>
+</body>
+</html>
