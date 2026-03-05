@@ -104,16 +104,39 @@ jobs:
         with:
           ref: refs/tags/${{ inputs.tag }}
 
-      - name: Setup Node
+      - name: Detect client lockfile
+        id: client-lockfile
+        shell: bash
+        run: |
+          if [[ -f client/package-lock.json ]]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node (with npm cache)
+        if: steps.client-lockfile.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: client/package-lock.json
 
+      - name: Setup Node (without npm cache)
+        if: steps.client-lockfile.outputs.exists != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Install client dependencies
         working-directory: client
-        run: npm ci
+        shell: bash
+        run: |
+          if [[ -f package-lock.json ]]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Build Linux AppImage
         if: matrix.target == 'linux-appimage'
